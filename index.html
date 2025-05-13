@@ -7,6 +7,37 @@
   <title>Loading... - IMU</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script defer src="./js/viewer.js"></script>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 20mm;
+    }
+    @media print {
+      body {
+        background: white !important;
+        color: black;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      .print\:hidden,
+      .no-print {
+        display: none !important;
+      }
+      img, pre, table {
+        page-break-inside: avoid;
+      }
+      h1, h2, h3 {
+        page-break-after: avoid;
+        page-break-inside: avoid;
+      }
+      .page-break {
+        page-break-before: always;
+        border: none;
+        margin: 0;
+        height: 0;
+      }
+    }
+  </style>
 </head>
 <body class="bg-white text-gray-800 max-w-[794px] mx-auto p-8">
   <div class="flex items-center justify-between mb-4">
