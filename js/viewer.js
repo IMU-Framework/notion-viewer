@@ -3,86 +3,132 @@ const pageId = "1e5b75a84d7e8037a156fefc949e0d34";
 
 fetch(`/api/notion.js?pageId=${pageId}`)
   .then(res => res.json())
-  .then(data => {
+  .then(async data => {
     const container = document.getElementById("notionContent");
-    container.innerHTML = renderBlocks(data.results);
+    const html = await renderBlocks(data.results);
+    container.innerHTML = html;
   });
 
-function renderBlocks(blocks) {
-  return blocks.map(block => {
-    const type = block.type;
-    const value = block[type];
-    const richText = value?.rich_text || [];
-
-    switch (type) {
-      case "paragraph":
-        return `<p class="text-base leading-relaxed">${renderRichText(richText)}</p>`;
-
-      case "heading_1":
-        return `<h1 class="text-3xl font-bold mt-6 mb-2">${renderRichText(richText)}</h1>`;
-
-      case "heading_2":
-        return `<h2 class="text-2xl font-semibold mt-5 mb-2">${renderRichText(richText)}</h2>`;
-
-      case "heading_3":
-        return `<h3 class="text-xl font-medium mt-4 mb-2">${renderRichText(richText)}</h3>`;
-
-      case "bulleted_list_item":
-        return `<ul class="list-disc ml-6"><li>${renderRichText(richText)}</li></ul>`;
-
-      case "numbered_list_item":
-        return `<ol class="list-decimal ml-6"><li>${renderRichText(richText)}</li></ol>`;
-
-      case "divider":
-        return `<hr class="my-6 border-gray-300"/>`;
-
-      default:
-        return `<div class="text-gray-400">[不支援的 block 類型: ${type}]</div>`;
+async function renderBlocks(blocks) {
+  const rendered = await Promise.all(blocks.map(async block => {
+    if (block.has_children) {
+      const childrenRes = await fetch(`/api/notion.js?pageId=${block.id}`);
+      const childrenJson = await childrenRes.json();
+      block.children = childrenJson.results;
     }
+    return renderSingleBlock(block);
+  }));
+  return rendered.join("");
+}
+
+function renderSingleBlock(block) {
+  const type = block.type;
+  const value = block[type];
+  const richText = value?.rich_text || [];
+
+  switch (type) {
+    case "paragraph":
+      return `<p class="text-base leading-relaxed">${renderRichText(richText)}</p>`;
+
+    case "heading_1":
+    case "heading_2":
+    case "heading_3":
+      const headingClass = {
+        heading_1: "text-3xl font-bold mt-6 mb-2",
+        heading_2: "text-2xl font-semibold mt-5 mb-2",
+        heading_3: "text-xl font-medium mt-4 mb-2"
+      }[type];
+
+      if (block.has_children && block[type].is_toggleable) {
+        return `
+          <details class="border-l-4 border-gray-300 pl-4 my-4">
+            <summary class="${headingClass} cursor-pointer">${renderRichText(richText)}</summary>
+            <div class="ml-4 mt-2">${block.children ? renderBlocksSync(block.children) : ""}</div>
+          </details>`;
+      } else {
+        return `<h${type.slice(-1)} class="${headingClass}">${renderRichText(richText)}</h${type.slice(-1)}>`;
+      }
+
+    case "bulleted_list_item":
+      return `<ul class="list-disc ml-6"><li>${renderRichText(richText)}</li></ul>`;
+
+    case "numbered_list_item":
+      return `<ol class="list-decimal ml-6"><li>${renderRichText(richText)}</li></ol>`;
+
+    case "divider":
+      return `<hr class="my-6 border-gray-300"/>`;
+
+    case "toggle":
+      return `
+        <details class="border-l-4 border-gray-300 pl-4 my-4">
+          <summary class="cursor-pointer font-semibold">${renderRichText(richText)}</summary>
+          <div class="ml-4 mt-2">${block.children ? renderBlocksSync(block.children) : ""}</div>
+        </details>`;
+
+    case "table":
+      return renderTableBlock(block);
+
+    default:
+      return `<div class="text-gray-400">[不支援的 block 類型: ${type}]</div>`;
+  }
+}
+
+function renderBlocksSync(blocks) {
+  return blocks.map(renderSingleBlock).join("");
+}
+
+function renderTableBlock(block) {
+  const rows = block.children || [];
+  const hasHeader = block.table?.has_column_header;
+  const tableRows = rows.map((row, idx) => {
+    const cells = row.table_row.cells;
+    const tag = hasHeader && idx === 0 ? "th" : "td";
+    return `<tr>${cells.map(cell => `<${tag} class="border px-4 py-2">${renderRichText(cell)}</${tag}>`).join("")}</tr>`;
   }).join("");
+
+  return `<table class="table-auto border-collapse border border-gray-300 my-4">${tableRows}</table>`;
 }
 
 function renderRichText(richTextArray) {
   return richTextArray.map(rt => {
-    const text = rt.plain_text;
+    const text = escapeHTML(rt.plain_text);
     const ann = rt.annotations;
     const href = rt.href;
 
-    let classes = [];
-    if (ann.bold) classes.push("font-bold");
-    if (ann.italic) classes.push("italic");
-    if (ann.underline) classes.push("underline");
-    if (ann.strikethrough) classes.push("line-through");
-    if (ann.code) classes.push("font-mono bg-gray-100 px-1 rounded");
+    const style = getNotionStyle(ann);
+    const content = href
+      ? `<a href="${href}" target="_blank" class="underline text-blue-600 hover:text-blue-800">${text}</a>`
+      : `<span style="${style}">${text}</span>`;
 
-    const colorClass = mapTextColor(ann.color);
-    if (colorClass) classes.push(colorClass);
-
-    const classString = classes.join(" ");
-    const content = escapeHTML(text);
-
-    if (href) {
-      return `<a href="${href}" class="${classString} underline text-blue-600 hover:text-blue-800" target="_blank">${content}</a>`;
-    } else {
-      return `<span class="${classString}">${content}</span>`;
-    }
+    return content;
   }).join("");
 }
 
-function mapTextColor(color) {
-  const map = {
-    gray: "text-gray-600",
-    brown: "text-yellow-900",
-    orange: "text-orange-600",
-    yellow: "text-yellow-500",
-    green: "text-green-600",
-    blue: "text-blue-600",
-    purple: "text-purple-600",
-    pink: "text-pink-600",
-    red: "text-red-600",
-    default: ""
+function getNotionStyle(ann) {
+  let style = "";
+  if (ann.bold) style += "font-weight:bold;";
+  if (ann.italic) style += "font-style:italic;";
+  if (ann.underline) style += "text-decoration:underline;";
+  if (ann.strikethrough) style += "text-decoration:line-through;";
+  if (ann.code) style += "font-family:monospace;background-color:#f3f3f3;padding:0.2em;border-radius:0.2em;";
+
+  const colorMap = {
+    gray: "#6B7280", red: "#EF4444", orange: "#F97316", yellow: "#EAB308",
+    green: "#10B981", blue: "#3B82F6", purple: "#8B5CF6", pink: "#EC4899",
+    brown: "#92400E", default: "",
+
+    gray_background: "#F3F4F6", red_background: "#FEE2E2", orange_background: "#FFEDD5",
+    yellow_background: "#FEF9C3", green_background: "#D1FAE5", blue_background: "#DBEAFE",
+    purple_background: "#EDE9FE", pink_background: "#FCE7F3", brown_background: "#EFEBE9"
   };
-  return map[color] || "";
+
+  const fg = ann.color.includes("background") ? "" : colorMap[ann.color] || "";
+  const bg = ann.color.includes("background") ? colorMap[ann.color] || "" : "";
+
+  if (fg) style += `color:${fg};`;
+  if (bg) style += `background-color:${bg};padding:0.1em 0.25em;border-radius:0.2em;`;
+
+  return style;
 }
 
 function escapeHTML(text) {
