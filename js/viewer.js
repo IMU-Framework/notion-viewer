@@ -3,9 +3,12 @@ const pageId = "1e5b75a84d7e8037a156fefc949e0d34";
 
 fetch(`/api/notion.js?pageId=${pageId}`)
   .then(res => res.json())
-  .then(async data => {
+  .then(async ({ title, blocks }) => {
+    document.title = `IMU - ${title}`;
+    document.getElementById("pageTitle").textContent = title;
+
     const container = document.getElementById("notionContent");
-    const html = await renderBlocks(data.results);
+    const html = await renderBlocks(blocks);
     container.innerHTML = html;
   });
 
@@ -14,7 +17,7 @@ async function renderBlocks(blocks) {
     if (block.has_children) {
       const childrenRes = await fetch(`/api/notion.js?pageId=${block.id}`);
       const childrenJson = await childrenRes.json();
-      block.children = childrenJson.results;
+      block.children = childrenJson.blocks;
     }
     return renderSingleBlock(block);
   }));
@@ -41,7 +44,7 @@ function renderSingleBlock(block) {
 
       if (block.has_children && block[type].is_toggleable) {
         return `
-          <details class="bg-gray-100 rounded-lg px-4 py-3 my-4 shadow-sm">
+          <details class="bg-gray-50 rounded-lg px-4 py-3 my-4 shadow-sm">
             <summary class="${headingClass} cursor-pointer">${renderRichText(richText)}</summary>
             <div class="ml-4 mt-2">${block.children ? renderBlocksSync(block.children) : ""}</div>
           </details>`;
@@ -60,10 +63,22 @@ function renderSingleBlock(block) {
 
     case "toggle":
       return `
-        <details class="bg-gray-100 rounded-lg px-4 py-3 my-4 shadow-sm">
+        <details class="bg-gray-50 rounded-lg px-4 py-3 my-4 shadow-sm">
           <summary class="cursor-pointer font-semibold">${renderRichText(richText)}</summary>
           <div class="ml-4 mt-2">${block.children ? renderBlocksSync(block.children) : ""}</div>
         </details>`;
+
+    case "callout":
+      return `<div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+        ${renderRichText(richText)}
+      </div>`;
+
+    case "code":
+      return `<pre class="bg-gray-900 text-white text-sm p-4 rounded overflow-x-auto"><code>${escapeHTML(value.text[0]?.plain_text || "")}</code></pre>`;
+
+    case "image":
+      const imgSrc = value.type === "external" ? value.external.url : value.file.url;
+      return `<div class="my-4"><img src="${imgSrc}" alt="" class="rounded shadow max-w-full" /></div>`;
 
     case "table":
       return renderTableBlock(block);
