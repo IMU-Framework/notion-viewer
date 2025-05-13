@@ -37,9 +37,9 @@ function renderSingleBlock(block) {
     case "heading_2":
     case "heading_3":
       const headingClass = {
-        heading_1: "text-3xl font-bold mt-12 mb-3",
-        heading_2: "text-2xl font-semibold mt-10 mb-3",
-        heading_3: "text-xl font-medium mt-8 mb-3"
+        heading_1: "text-3xl font-bold mt-16 mb-3",
+        heading_2: "text-2xl font-semibold mt-14 mb-3",
+        heading_3: "text-xl font-medium mt-12 mb-3"
       }[type];
 
       if (block.has_children && block[type].is_toggleable) {
