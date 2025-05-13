@@ -41,7 +41,7 @@ function renderSingleBlock(block) {
 
       if (block.has_children && block[type].is_toggleable) {
         return `
-          <details class="bg-gray-50 rounded-lg px-4 py-3 my-4 shadow-sm">
+          <details class="bg-gray-100 rounded-lg px-4 py-3 my-4 shadow-sm">
             <summary class="${headingClass} cursor-pointer">${renderRichText(richText)}</summary>
             <div class="ml-4 mt-2">${block.children ? renderBlocksSync(block.children) : ""}</div>
           </details>`;
@@ -60,7 +60,7 @@ function renderSingleBlock(block) {
 
     case "toggle":
       return `
-        <details class="bg-gray-50 rounded-lg px-4 py-3 my-4 shadow-sm">
+        <details class="bg-gray-100 rounded-lg px-4 py-3 my-4 shadow-sm">
           <summary class="cursor-pointer font-semibold">${renderRichText(richText)}</summary>
           <div class="ml-4 mt-2">${block.children ? renderBlocksSync(block.children) : ""}</div>
         </details>`;
