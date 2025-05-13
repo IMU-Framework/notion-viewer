@@ -1,9 +1,23 @@
 
 const pageId = "1e5b75a84d7e8037a156fefc949e0d34";
 
+// fetch(`/api/notion.js?pageId=${pageId}`)
+//   .then(res => res.json())
+//   .then(async ({ title, blocks }) => {
+//     document.title = `IMU - ${title}`;
+//     document.getElementById("pageTitle").textContent = title;
+
+//     const container = document.getElementById("notionContent");
+//     const html = await renderBlocks(blocks);
+//     container.innerHTML = html;
+//   });
+
 fetch(`/api/notion.js?pageId=${pageId}`)
   .then(res => res.json())
-  .then(async ({ title, blocks }) => {
+  .then(async (data) => {
+    const title = data.title || "Untitled";
+    const blocks = data.blocks || data.results || [];
+
     document.title = `IMU - ${title}`;
     document.getElementById("pageTitle").textContent = title;
 
@@ -11,6 +25,7 @@ fetch(`/api/notion.js?pageId=${pageId}`)
     const html = await renderBlocks(blocks);
     container.innerHTML = html;
   });
+
 
 async function renderBlocks(blocks) {
   const rendered = await Promise.all(blocks.map(async block => {
