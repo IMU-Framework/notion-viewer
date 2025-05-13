@@ -12,21 +12,6 @@ fetch(`/api/notion.js?pageId=${pageId}`)
     container.innerHTML = html;
   });
 
-// fetch(`/api/notion.js?pageId=${pageId}`)
-//   .then(res => res.json())
-//   .then(async (data) => {
-//     const title = data.title || "Untitled";
-//     const blocks = data.blocks || data.results || [];
-
-//     document.title = `IMU - ${title}`;
-//     document.getElementById("pageTitle").textContent = title;
-
-//     const container = document.getElementById("notionContent");
-//     const html = await renderBlocks(blocks);
-//     container.innerHTML = html;
-//   });
-
-
 async function renderBlocks(blocks) {
   const rendered = await Promise.all(blocks.map(async block => {
     if (block.has_children) {
@@ -74,7 +59,7 @@ function renderSingleBlock(block) {
       return `<ol class="list-decimal ml-6"><li>${renderRichText(richText)}</li></ol>`;
 
     case "divider":
-      return `<hr class="my-6 border-gray-300"/>`;
+      return `<hr class="page-break" />`;
 
     case "toggle":
       return `
@@ -84,7 +69,7 @@ function renderSingleBlock(block) {
         </details>`;
 
     case "callout":
-      return `<div class="bg-yellow-100 border-l-4 border-yellow-400 p-4 rounded">
+      return `<div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
         ${renderRichText(richText)}
       </div>`;
 
@@ -182,3 +167,8 @@ function escapeHTML(text) {
     '"': "&quot;"
   }[tag]));
 }
+
+// 展開所有 toggle 區塊以便列印
+window.addEventListener("beforeprint", () => {
+  document.querySelectorAll("details").forEach(d => d.open = true);
+});
