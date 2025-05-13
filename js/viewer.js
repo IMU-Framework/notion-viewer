@@ -41,7 +41,7 @@ function renderSingleBlock(block) {
 
       if (block.has_children && block[type].is_toggleable) {
         return `
-          <details class="border-l-4 border-gray-300 pl-4 my-4">
+          <details class="bg-gray-50 rounded-lg px-4 py-3 my-4 shadow-sm">
             <summary class="${headingClass} cursor-pointer">${renderRichText(richText)}</summary>
             <div class="ml-4 mt-2">${block.children ? renderBlocksSync(block.children) : ""}</div>
           </details>`;
@@ -60,7 +60,7 @@ function renderSingleBlock(block) {
 
     case "toggle":
       return `
-        <details class="border-l-4 border-gray-300 pl-4 my-4">
+        <details class="bg-gray-50 rounded-lg px-4 py-3 my-4 shadow-sm">
           <summary class="cursor-pointer font-semibold">${renderRichText(richText)}</summary>
           <div class="ml-4 mt-2">${block.children ? renderBlocksSync(block.children) : ""}</div>
         </details>`;
@@ -80,13 +80,25 @@ function renderBlocksSync(blocks) {
 function renderTableBlock(block) {
   const rows = block.children || [];
   const hasHeader = block.table?.has_column_header;
-  const tableRows = rows.map((row, idx) => {
-    const cells = row.table_row.cells;
-    const tag = hasHeader && idx === 0 ? "th" : "td";
-    return `<tr>${cells.map(cell => `<${tag} class="border px-4 py-2">${renderRichText(cell)}</${tag}>`).join("")}</tr>`;
-  }).join("");
+  const headerRow = hasHeader ? rows[0] : null;
+  const bodyRows = hasHeader ? rows.slice(1) : rows;
 
-  return `<table class="table-auto border-collapse border border-gray-300 my-4">${tableRows}</table>`;
+  const thead = hasHeader ? `
+    <thead class="bg-gray-100 text-left font-bold text-sm">
+      <tr>
+        ${headerRow.table_row.cells.map(cell => `<th class="border border-gray-300 px-4 py-2">${renderRichText(cell)}</th>`).join("")}
+      </tr>
+    </thead>` : "";
+
+  const tbody = `
+    <tbody class="divide-y divide-gray-200">
+      ${bodyRows.map(row => `
+        <tr class="even:bg-gray-50">
+          ${row.table_row.cells.map(cell => `<td class="border border-gray-300 px-4 py-2 text-sm">${renderRichText(cell)}</td>`).join("")}
+        </tr>`).join("")}
+    </tbody>`;
+
+  return `<div class="overflow-x-auto"><table class="table-auto border-collapse border border-gray-300 my-4 w-full text-sm">${thead}${tbody}</table></div>`;
 }
 
 function renderRichText(richTextArray) {
