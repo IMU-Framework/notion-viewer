@@ -53,6 +53,13 @@
       Print
     </button>
   </div>
+
+  <!-- 新增輸入 Notion Page ID 區塊 -->
+<div class="flex gap-2 mb-4">
+  <input id="pageIdInput" type="text" placeholder="輸入 Notion Page ID" class="border rounded p-2 flex-grow text-sm" />
+  <button onclick="loadNewPageId()" class="bg-blue-500 text-white px-3 py-1 rounded text-sm">確認</button>
+</div>
+  
   <div id="notionContent" class="space-y-4">
     <!-- Notion blocks will appear here -->
   </div>
