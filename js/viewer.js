@@ -1,17 +1,33 @@
+let pageId = "1e5b75a84d7e8037a156fefc949e0d34"; // 預設 Notion Page ID
 
-const pageId = "1e5b75a84d7e8037a156fefc949e0d34";
+// 封裝載入頁面邏輯
+function loadPage(id) {
+  fetch(`/api/notion.js?pageId=${id}`)
+    .then(res => res.json())
+    .then(async ({ title, blocks }) => {
+      document.title = `IMU - ${title}`;
+      document.getElementById("pageTitle").textContent = title;
 
-fetch(`/api/notion.js?pageId=${pageId}`)
-  .then(res => res.json())
-  .then(async ({ title, blocks }) => {
-    document.title = `IMU - ${title}`;
-    document.getElementById("pageTitle").textContent = title;
+      const container = document.getElementById("notionContent");
+      const html = await renderBlocks(blocks);
+      container.innerHTML = html;
+    });
+}
 
-    const container = document.getElementById("notionContent");
-    const html = await renderBlocks(blocks);
-    container.innerHTML = html;
-  });
+// 初始載入預設頁面
+loadPage(pageId);
 
+// 動態切換 Notion 頁面
+function loadNewPageId() {
+  const inputId = document.getElementById("pageIdInput").value.trim();
+  if (inputId) {
+    loadPage(inputId);
+  } else {
+    alert("請輸入有效的 Notion Page ID");
+  }
+}
+
+// 以下是原本的函式 (renderBlocks、renderSingleBlock 等)
 async function renderBlocks(blocks) {
   const rendered = await Promise.all(blocks.map(async block => {
     if (block.has_children) {
@@ -31,7 +47,9 @@ function renderSingleBlock(block) {
 
   switch (type) {
     case "paragraph":
-      return `<p class="text-base leading-relaxed">${renderRichText(richText)}</p>`;
+      return richText.length === 0
+        ? `<p class="text-base leading-relaxed min-h-[1.5rem]">&nbsp;</p>`
+        : `<p class="text-base leading-relaxed">${renderRichText(richText)}</p>`;
 
     case "heading_1":
     case "heading_2":
